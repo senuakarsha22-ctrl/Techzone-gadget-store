@@ -1,16 +1,17 @@
 document.addEventListener('DOMContentLoaded', () => {
-  let cart = [];
+  let shoppingCart = [];
 
   const cartToggleBtn = document.getElementById('cartToggle');
   const cartDrawer = document.getElementById('cartDrawer');
   const cartOverlay = document.getElementById('cartOverlay');
   const closeCartBtn = document.getElementById('closeCart');
   const cartBadge = document.getElementById('cartBadge');
-  const drawerCartCount = document.getElementById('drawerCartCount');
-  const cartItemsContainer = document.getElementById('cartItems');
+  const cartItemCount = document.getElementById('cartItemCount');
+  const cartItemsList = document.getElementById('cartItemsList');
   const cartTotalPrice = document.getElementById('cartTotalPrice');
   const toast = document.getElementById('toast');
-  const toastMsg = document.getElementById('toastMsg');
+  const toastText = document.getElementById('toastText');
+  const searchInput = document.getElementById('searchInput');
 
   // Toggle Cart Drawer
   const openCart = () => {
@@ -27,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
   closeCartBtn.addEventListener('click', closeCart);
   cartOverlay.addEventListener('click', closeCart);
 
-  // Add To Cart Functionality
+  // Add Item to Cart
   document.querySelectorAll('.btn-add-cart').forEach(button => {
     button.addEventListener('click', (e) => {
       const card = e.target.closest('.product-card');
@@ -36,8 +37,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const price = parseFloat(card.dataset.price);
       const img = card.dataset.img;
 
-      addToCart(id, name, price, img);
-      showToast(`Added ${name} to cart!`);
+      addItemToCart(id, name, price, img);
+      triggerToast(`Added "${name}" to cart!`);
     });
   });
 
@@ -50,51 +51,63 @@ document.addEventListener('DOMContentLoaded', () => {
       const price = parseFloat(card.dataset.price);
       const img = card.dataset.img;
 
-      addToCart(id, name, price, img);
+      addItemToCart(id, name, price, img);
       openCart();
     });
   });
 
-  function addToCart(id, name, price, img) {
-    const existingIndex = cart.findIndex(item => item.id === id);
-    if (existingIndex > -1) {
-      cart[existingIndex].qty += 1;
+  function addItemToCart(id, name, price, img) {
+    const existing = shoppingCart.find(item => item.id === id);
+    if (existing) {
+      existing.quantity += 1;
     } else {
-      cart.push({ id, name, price, img, qty: 1 });
+      shoppingCart.push({ id, name, price, img, quantity: 1 });
     }
-    updateCartUI();
+    renderCart();
   }
 
-  function updateCartUI() {
-    const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
-    const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+  function renderCart() {
+    const totalCount = shoppingCart.reduce((sum, item) => sum + item.quantity, 0);
+    const totalPrice = shoppingCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-    cartBadge.textContent = totalItems;
-    drawerCartCount.textContent = totalItems;
+    cartBadge.textContent = totalCount;
+    cartItemCount.textContent = totalCount;
     cartTotalPrice.textContent = `$${totalPrice.toFixed(2)}`;
 
-    if (cart.length === 0) {
-      cartItemsContainer.innerHTML = '<p class="empty-msg">Your shopping cart is currently empty.</p>';
+    if (shoppingCart.length === 0) {
+      cartItemsList.innerHTML = `
+        <div class="cart-empty-state">
+          <i class="fa-solid fa-basket-shopping"></i>
+          <p>Your cart is empty.</p>
+        </div>`;
       return;
     }
 
-    cartItemsContainer.innerHTML = cart.map(item => `
-      <div class="cart-item" style="display:flex; gap:12px; margin-bottom:16px; align-items:center;">
-        <img src="${item.img}" style="width:50px; height:50px; border-radius:8px; object-fit:cover;">
-        <div style="flex-grow:1;">
-          <h4 style="font-size:0.9rem;">${item.name}</h4>
-          <p style="font-size:0.8rem; color:var(--text-muted);">$${item.price} x ${item.qty}</p>
+    cartItemsList.innerHTML = shoppingCart.map(item => `
+      <div style="display:flex; gap:12px; align-items:center; margin-bottom:12px; background:#181b24; padding:8px; border-radius:6px;">
+        <img src="${item.img}" style="width:48px; height:48px; object-fit:cover; border-radius:4px;">
+        <div style="flex:1;">
+          <h4 style="font-size:0.85rem; margin-bottom:2px;">${item.name}</h4>
+          <span style="font-size:0.8rem; color:var(--accent-cyan);">$${item.price} x ${item.quantity}</span>
         </div>
       </div>
     `).join('');
   }
 
-  function showToast(message) {
-    toastMsg.textContent = message;
-    toast.classList.add('active');
+  function triggerToast(message) {
+    toastText.textContent = message;
+    toast.classList.add('show');
     setTimeout(() => {
-      toast.classList.remove('active');
-    }, 3000);
+      toast.classList.remove('show');
+    }, 2500);
   }
-});
 
+  // Live Product Filter
+  searchInput.addEventListener('input', (e) => {
+    const term = e.target.value.toLowerCase();
+    document.querySelectorAll('.product-card').forEach(card => {
+      const title = card.dataset.name.toLowerCase();
+      card.style.display = title.includes(term) ? 'flex' : 'none';
+    });
+  });
+});
